@@ -1,0 +1,501 @@
+{
+  "name": "VAPI to GHL AI Receptionist - Accounting",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vapi-accounting-call",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1088,
+        -256
+      ],
+      "id": "3917ab99-4358-403a-bfb7-e9b69b567c8f",
+      "name": "Webhook",
+      "webhookId": "1402961b-99e5-42a0-9b9f-7ee9d24724ff"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst structuredOutputs = body.message?.artifact?.structuredOutputs || {};\nconst firstKey = Object.keys(structuredOutputs)[0];\nconst extracted = structuredOutputs[firstKey]?.result || {};\n\nconst callData = {\n  callId: body.call?.id || '',\n  callerPhone: body.call?.customer?.number || '',\n  summary: body.message?.summary || '',\n  transcript: body.message?.artifact?.transcript || '',\n  name: extracted.name || 'Unknown Caller',\n  phone: extracted.phone || body.call?.customer?.number || '',\n  serviceType: extracted.serviceType || 'General Enquiry',\n  businessDetails: extracted.businessDetails || '',\n  qualification: extracted.qualification || 'General Enquiry'\n};\nreturn [{ json: callData }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -672,
+        -256
+      ],
+      "id": "76f28ad4-c633-4f4c-91ea-5c7168506bca",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/opportunities/upsert/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_API_TOKEN"
+            },
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"name\": \"{{ $('Code').item.json.name }} - {{ $('Code').item.json.serviceType }}\",\n  \"locationId\": \"XXHqCPG4eolCH3xd8ZBS\",\n  \"contactId\": \"{{ $('GHL contact node').item.json.contact.id }}\",\n  \"pipelineId\": \"Q3BGzWkPFng5gkvcf6D4\",\n  \"pipelineStageId\": \"33ea6208-a1b9-49f2-9acd-76729ef5e3e2\",\n  \"status\": \"open\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -256,
+        -256
+      ],
+      "id": "2bb9ab23-a5ca-4aec-8362-4423b981f3d5",
+      "name": "HTTP Request1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/contacts/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_API_TOKEN"
+            },
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"firstName\": \"{{ $('Code').item.json.name.split(' ')[0] }}\",\n  \"lastName\": \"{{ $('Code').item.json.name.split(' ')[1] || '' }}\",\n  \"phone\": \"{{ $('Code').item.json.phone }}\",\n  \"locationId\": \"XXHqCPG4eolCH3xd8ZBS\",\n  \"source\": \"VAPI AI Call\",\n  \"tags\": [\"AI Lead\", \"VAPI\"]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -464,
+        -256
+      ],
+      "id": "dec24dba-992d-4afd-9f5c-921520f2af02",
+      "name": "GHL contact node"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('GHL contact node').item.json.contact.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_API_TOKEN"
+            },
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customFields\": [\n    {\n      \"id\": \"5jhm64LR99dkHeTpv5Bg\",\n      \"value\": \"{{ $('Code').item.json.serviceType }}\"\n    },\n    {\n      \"id\": \"DMCddpQnJ1xZ5Cz9Zoj5\",\n      \"value\": \"{{ $('Code').item.json.businessDetails }}\"\n    },\n    {\n      \"id\": \"9HKW8VbkGeNBFDP0zIiU\",\n      \"value\": \"{{ $('Code').item.json.summary }}\"\n    },\n    {\n      \"id\": \"9j0TwrwopqRNHzZjiFjk\",\n      \"value\": \"{{ $('Code').item.json.qualification }}\"\n    },\n    {\n      \"id\": \"dRJblYs1EKQi3DEr16g8\",\n      \"value\": \"VAPI AI Call\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -48,
+        -256
+      ],
+      "id": "85c151a9-8fc1-4843-b1f3-f2a7354efb9e",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('GHL contact node').item.json.contact.id }}/notes",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_API_TOKEN"
+            },
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "body",
+              "value": "=VAPI AI Call Transcript:\\n\\n{{ $('Code').item.json.transcript.replace(/\\n/g, ' ') }}\\n\\nSummary: {{ $('Code').item.json.summary }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        160,
+        -256
+      ],
+      "id": "9ffecb9f-1085-4dec-b546-cb2c24a4a313",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.elevenlabs.io/v1/text-to-speech/XJ2NRRGJX2Y9VGKiem2d",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "==Hi {{ $('Code').item.json.name }}, thank you for calling Whitmore and Co Accountants. I've noted your enquiry about {{ $('Code').item.json.serviceType }}. One of our accountants will be in touch with you shortly. Have a great day!"
+            },
+            {
+              "name": "model_id",
+              "value": "eleven_turbo_v2_5"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        368,
+        -256
+      ],
+      "id": "0218ab5c-d230-4ddf-87c8-42cac7ac52e9",
+      "name": "HTTP Request3",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Fdff9TbCRH2zhc18",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "=vapi-followup-{{ $('Code').item.json.name }}-{{ $now.format('yyyy-MM-dd') }}.mp3",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1Sk5bRovAItSPUh4D-yhcTZUxTmIOhvwE",
+          "mode": "list",
+          "cachedResultName": "Demos",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1Sk5bRovAItSPUh4D-yhcTZUxTmIOhvwE"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        800,
+        -240
+      ],
+      "id": "238b9494-8313-41e0-b1b1-38152ff285cc",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "xwDITuc0qabO3UQR",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.twilio.com/2010-04-01/Accounts/YOUR_TWILIO_ACCOUNT_SID/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "From",
+              "value": "whatsapp:+14155238886"
+            },
+            {
+              "name": "To",
+              "value": "=whatsapp:{{ $('Code').item.json.phone }}"
+            },
+            {
+              "name": "Body",
+              "value": "==Hi {{ $('Code').item.json.name }}, thank you for contacting Whitmore and Co Accountants. Please listen to the voice message below from our team."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -992,
+        80
+      ],
+      "id": "289b3a14-fd3d-4e6c-b3ca-b364ed4a943d",
+      "name": "Send WhatsApp body",
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "V7p3vAAwS4E8roB3",
+          "name": "Unnamed credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.twilio.com/2010-04-01/Accounts/YOUR_TWILIO_ACCOUNT_SID/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "From",
+              "value": "whatsapp:+14155238886"
+            },
+            {
+              "name": "To",
+              "value": "=whatsapp:{{ $('Code').item.json.phone }}"
+            },
+            {
+              "name": "MediaUrl",
+              "value": "={{ $('Code in JavaScript1').item.json.cloudinaryUrl }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -464,
+        80
+      ],
+      "id": "19fd284a-a1a3-4638-932d-076d0617e61d",
+      "name": "HTTP Request5",
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "V7p3vAAwS4E8roB3",
+          "name": "Unnamed credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst binaryData = await this.helpers.getBinaryDataBuffer(0, 'data');\nconst base64 = binaryData.toString('base64');\n\nconst safeName = ($('Code').item.json.name || 'lead')\n  .replace(/[^a-z0-9-]/gi, '-')\n  .replace(/-+/g, '-')\n  .replace(/^-|-$/g, '')\n  .toLowerCase();\n\nconst fileName = `${safeName || 'lead'}-voice-message.mp3`;\n\nconst response = await this.helpers.httpRequest({\n  method: 'POST',\n  url: 'https://api.cloudinary.com/v1_1/dlkroua3x/video/upload',\n  body: {\n    file: `data:audio/mpeg;base64,${base64}`,\n    upload_preset: 'x9qwgnpj',\n    filename_override: fileName\n  },\n  json: true,\n  ignoreHttpStatusErrors: true\n});\n\nif (!response.secure_url) {\n  throw new Error(`Cloudinary upload failed: ${JSON.stringify(response)}`);\n}\n\nitems[0].json.cloudinaryUrl = response.secure_url;\nitems[0].json.cloudinaryResponse = response;\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        -256
+      ],
+      "id": "d23d3d5f-39ae-4316-81f1-3c4360e3dbe8",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "30e4af9c-98c9-4a06-b682-8e9f8bfa70de",
+              "leftValue": "={{ $json.body.message.type }}",
+              "rightValue": "end-of-call-report",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -880,
+        -432
+      ],
+      "id": "a623ab71-2e19-46d3-91a5-24f9644b6c65",
+      "name": "If"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "GHL contact node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL contact node": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request3": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp body": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "fe7eb077-6914-43f5-af5d-cb1445c3eb67",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_N8N_INSTANCE_ID"
+  },
+  "id": "op5a0d8PckAr3Fz1",
+  "tags": []
+}
