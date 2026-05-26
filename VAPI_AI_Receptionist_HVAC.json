@@ -1,0 +1,501 @@
+{
+  "name": "VAPI to GHL AI Receptionist - HVAC",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vapi-hvac-call",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1088,
+        -256
+      ],
+      "id": "1c94959e-b68e-4968-a19d-4c3593dd8c3c",
+      "name": "Webhook",
+      "webhookId": "ffd2cd41-10d7-40b3-84b5-af1b19dd7717"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nconst structuredOutputs = body.message?.artifact?.structuredOutputs || {};\nconst firstKey = Object.keys(structuredOutputs)[0];\nconst extracted = structuredOutputs[firstKey]?.result || {};\n\nconst callData = {\n  callId: body.call?.id || '',\n  callerPhone: body.call?.customer?.number || '',\n  summary: body.message?.summary || '',\n  transcript: body.message?.artifact?.transcript || '',\n  name: extracted.name || 'Unknown Caller',\n  phone: extracted.phone || body.call?.customer?.number || '',\n  email: extracted.email || '',\n  serviceType: extracted.serviceType || '',\n  issue: extracted.issue || '',\n  preferredTime: extracted.preferredTime || '',\n  qualification: extracted.qualification || 'New Lead'\n};\nreturn [{ json: callData }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -672,
+        -256
+      ],
+      "id": "eb4972fd-62e2-4f45-8069-5521ef51ba6d",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/opportunities/upsert/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_API_TOKEN"
+            },
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"name\": \"{{ $('Code').item.json.name }} - {{ $('Code').item.json.serviceType }}\",\n  \"locationId\": \"XXHqCPG4eolCH3xd8ZBS\",\n  \"contactId\": \"{{ $('GHL contact node').item.json.contact.id }}\",\n  \"pipelineId\": \"rOAzLUFs7nG9xsmGm4QY\",\n  \"pipelineStageId\": \"d93f9426-9762-4eaa-a4b7-b93446b2e0ae\",\n  \"status\": \"open\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -256,
+        -256
+      ],
+      "id": "ee2ea904-f19a-4e0a-8b80-21401c333cd8",
+      "name": "HTTP Request1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://services.leadconnectorhq.com/contacts/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_API_TOKEN"
+            },
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"firstName\": \"{{ $('Code').item.json.name.split(' ')[0] }}\",\n  \"lastName\": \"{{ $('Code').item.json.name.split(' ')[1] || '' }}\",\n  \"phone\": \"{{ $('Code').item.json.phone }}\",\n  \"locationId\": \"XXHqCPG4eolCH3xd8ZBS\",\n  \"source\": \"VAPI AI Call\",\n  \"tags\": [\"AI Lead\", \"VAPI\"]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -464,
+        -256
+      ],
+      "id": "530811d5-03fa-4080-a0e9-c1eb7f1395ef",
+      "name": "GHL contact node"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('GHL contact node').item.json.contact.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_API_TOKEN"
+            },
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customFields\": [\n    {\n      \"id\": \"jQNIfuij6OnpF2H8vObI\",\n      \"value\": \"{{ $('Code').item.json.serviceType }}\"\n    },\n    {\n      \"id\": \"U2FI6a2JK7dcyTdiH7Jm\",\n      \"value\": \"{{ $('Code').item.json.issue }}\"\n    },\n    {\n      \"id\": \"A8wTFYHkOtuf1HrDtk65\",\n      \"value\": \"{{ $('Code').item.json.preferredTime }}\"\n    },\n    {\n      \"id\": \"9HKW8VbkGeNBFDP0zIiU\",\n      \"value\": \"{{ $('Code').item.json.summary }}\"\n    },\n    {\n      \"id\": \"9j0TwrwopqRNHzZjiFjk\",\n      \"value\": \"{{ $('Code').item.json.qualification }}\"\n    },\n    {\n      \"id\": \"dRJblYs1EKQi3DEr16g8\",\n      \"value\": \"VAPI AI Call\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -48,
+        -256
+      ],
+      "id": "ad5f6ed6-01f5-4d35-bd1b-34eeadef8de0",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://services.leadconnectorhq.com/contacts/{{ $('GHL contact node').item.json.contact.id }}/notes",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_API_TOKEN"
+            },
+            {
+              "name": "Version",
+              "value": "2021-07-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "body",
+              "value": "=VAPI AI Call Transcript:\\n\\n{{ $('Code').item.json.transcript.replace(/\\n/g, ' ') }}\\n\\nSummary: {{ $('Code').item.json.summary }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        160,
+        -256
+      ],
+      "id": "a938933c-6069-420d-befb-5deedb70e6b8",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.elevenlabs.io/v1/text-to-speech/HGWkoC7leAKPhy2U9ENU",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "==Hi {{ $('Code').item.json.name }}, this is Sid from Austin HVAC Services. Thank you for calling us today. I've logged your {{ $('Code').item.json.serviceType }} request and our team will be in touch shortly to confirm your appointment. Have a great day!"
+            },
+            {
+              "name": "model_id",
+              "value": "eleven_turbo_v2_5"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        368,
+        -256
+      ],
+      "id": "d1f54b56-f46d-4884-b518-810f136e893c",
+      "name": "HTTP Request3",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Fdff9TbCRH2zhc18",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "=vapi-followup-{{ $('Code').item.json.name }}-{{ $now.format('yyyy-MM-dd') }}.mp3",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1Sk5bRovAItSPUh4D-yhcTZUxTmIOhvwE",
+          "mode": "list",
+          "cachedResultName": "Demos",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1Sk5bRovAItSPUh4D-yhcTZUxTmIOhvwE"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        800,
+        -240
+      ],
+      "id": "560ac3a4-74e3-4bfc-8410-db630326bf72",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "xwDITuc0qabO3UQR",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.twilio.com/2010-04-01/Accounts/YOUR_TWILIO_ACCOUNT_SID/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "From",
+              "value": "whatsapp:+14155238886"
+            },
+            {
+              "name": "To",
+              "value": "=whatsapp:{{ $('Code').item.json.phone }}"
+            },
+            {
+              "name": "Body",
+              "value": "=Hi {{ $('Code').item.json.name }}, your HVAC service confirmation from Austin HVAC Services is ready. Please listen to the audio below."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -992,
+        80
+      ],
+      "id": "01c616b0-4aea-4783-bf84-4ea2643dea5f",
+      "name": "Send WhatsApp body",
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "V7p3vAAwS4E8roB3",
+          "name": "Unnamed credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.twilio.com/2010-04-01/Accounts/YOUR_TWILIO_ACCOUNT_SID/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "From",
+              "value": "whatsapp:+14155238886"
+            },
+            {
+              "name": "To",
+              "value": "=whatsapp:{{ $('Code').item.json.phone }}"
+            },
+            {
+              "name": "MediaUrl",
+              "value": "={{ $('Code in JavaScript1').item.json.cloudinaryUrl }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -464,
+        80
+      ],
+      "id": "4ef02929-b919-4ea3-9610-bbde87b5e95f",
+      "name": "HTTP Request5",
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "V7p3vAAwS4E8roB3",
+          "name": "Unnamed credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst binaryData = await this.helpers.getBinaryDataBuffer(0, 'data');\nconst base64 = binaryData.toString('base64');\n\nconst safeName = ($('Code').item.json.name || 'lead')\n  .replace(/[^a-z0-9-]/gi, '-')\n  .replace(/-+/g, '-')\n  .replace(/^-|-$/g, '')\n  .toLowerCase();\n\nconst fileName = `${safeName || 'lead'}-voice-message.mp3`;\n\nconst response = await this.helpers.httpRequest({\n  method: 'POST',\n  url: 'https://api.cloudinary.com/v1_1/dlkroua3x/video/upload',\n  body: {\n    file: `data:audio/mpeg;base64,${base64}`,\n    upload_preset: 'x9qwgnpj',\n    filename_override: fileName\n  },\n  json: true,\n  ignoreHttpStatusErrors: true\n});\n\nif (!response.secure_url) {\n  throw new Error(`Cloudinary upload failed: ${JSON.stringify(response)}`);\n}\n\nitems[0].json.cloudinaryUrl = response.secure_url;\nitems[0].json.cloudinaryResponse = response;\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        -256
+      ],
+      "id": "cc4e5723-c9ae-41b9-8a38-ea51555bb392",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "30e4af9c-98c9-4a06-b682-8e9f8bfa70de",
+              "leftValue": "={{ $json.body.message.type }}",
+              "rightValue": "end-of-call-report",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -880,
+        -432
+      ],
+      "id": "76e35c70-1328-42d7-851c-f80bf8b3888f",
+      "name": "If"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "GHL contact node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GHL contact node": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request3": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp body": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "c3a6aad6-a526-4960-8f4d-0696fc6e5722",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_N8N_INSTANCE_ID"
+  },
+  "id": "fSMYLlYbW60ObzCM",
+  "tags": []
+}
