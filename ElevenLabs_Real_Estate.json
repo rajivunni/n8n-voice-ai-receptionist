@@ -1,0 +1,397 @@
+{
+  "name": "ElevenLabs - Real Estate",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "6c2db451-b285-4bbd-b57e-9274b377e774",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -864,
+        256
+      ],
+      "id": "73f16c23-76e9-430f-bf9b-778e356350f9",
+      "name": "Webhook",
+      "webhookId": "6c2db451-b285-4bbd-b57e-9274b377e774"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.elevenlabs.io/v1/text-to-speech/XJ2NRRGJX2Y9VGKiem2d",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "=Hi {{ $('Code').item.json.name }}, this is Sarah from Austin Realty. I saw your enquiry about {{ $('Code').item.json.property }} and wanted to reach out personally. I'd love to arrange a viewing for you. Please reply to this message and we'll get something booked in."
+            },
+            {
+              "name": "model_id",
+              "value": "eleven_turbo_v2_5"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -432,
+        240
+      ],
+      "id": "47753fd2-420a-4846-908e-ffca0bdfdf0b",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Fdff9TbCRH2zhc18",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "=lead-followup-{{ $('Code').item.json.name }}-{{ $now.format('yyyy-MM-dd') }}.mp3",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1Sk5bRovAItSPUh4D-yhcTZUxTmIOhvwE",
+          "mode": "list",
+          "cachedResultName": "Demos",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1Sk5bRovAItSPUh4D-yhcTZUxTmIOhvwE"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -64,
+        224
+      ],
+      "id": "d7d0d5f7-c6b4-4a80-9ecf-f5fd83da9d1f",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "xwDITuc0qabO3UQR",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1fS-3W3yUlQDm8ki0BDFLplV2iK2nCxXgr-d-rhEv0PQ",
+          "mode": "list",
+          "cachedResultName": "Eleven demo",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1fS-3W3yUlQDm8ki0BDFLplV2iK2nCxXgr-d-rhEv0PQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1fS-3W3yUlQDm8ki0BDFLplV2iK2nCxXgr-d-rhEv0PQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now }}",
+            "Name": "={{ $('Code').item.json.name }}",
+            "Phone": "={{ $('Code').item.json.phone }}",
+            "Property": "={{ $('Code').item.json.property }}",
+            "Status": "sent",
+            "File Name": "={{ $('Upload file').item.json.name }}"
+          },
+          "matchingColumns": [
+            "Timestamp"
+          ],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Property",
+              "displayName": "Property",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "File Name",
+              "displayName": "File Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        368,
+        208
+      ],
+      "id": "a5c44d87-347c-4870-8d4d-27a01ba8fcee",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "lT0M6yMFRqykut8m",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const fields = $input.first().json.body.data.fields;\n\nconst name = fields.find(f => f.type === 'INPUT_TEXT' && f.label === 'Your Name')?.value;\nconst phone = fields.find(f => f.type === 'INPUT_PHONE_NUMBER')?.value;\nconst property = fields.find(f => f.type === 'INPUT_TEXT' && f.label !== 'Your Name')?.value;\n\nreturn [{\n  json: { name, phone, property }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -656,
+        256
+      ],
+      "id": "cedef248-ea99-46bf-83bc-48705e4079b4",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.twilio.com/2010-04-01/Accounts/YOUR_TWILIO_ACCOUNT_SID/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "From",
+              "value": "whatsapp:+14155238886"
+            },
+            {
+              "name": "To",
+              "value": "=whatsapp:{{ $('Code').item.json.phone }}"
+            },
+            {
+              "name": "MediaUrl",
+              "value": "={{ $('Code in JavaScript').item.json.cloudinaryUrl }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        144,
+        448
+      ],
+      "id": "2f4a880f-e795-43a0-9c25-4add38c42e2c",
+      "name": "HTTP Request1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "V7p3vAAwS4E8roB3",
+          "name": "Unnamed credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst binaryData = await this.helpers.getBinaryDataBuffer(0, 'data');\nconst base64 = binaryData.toString('base64');\n\nconst safeName = ($('Code').item.json.name || 'lead')\n  .replace(/[^a-z0-9-]/gi, '-')\n  .replace(/-+/g, '-')\n  .replace(/^-|-$/g, '')\n  .toLowerCase();\n\nconst fileName = `${safeName || 'lead'}-voice-message.mp3`;\n\nconst response = await this.helpers.httpRequest({\n  method: 'POST',\n  url: 'https://api.cloudinary.com/v1_1/dlkroua3x/video/upload',\n  body: {\n    file: `data:audio/mpeg;base64,${base64}`,\n    upload_preset: 'x9qwgnpj',\n    filename_override: fileName\n  },\n  json: true,\n  ignoreHttpStatusErrors: true\n});\n\nif (!response.secure_url) {\n  throw new Error(`Cloudinary upload failed: ${JSON.stringify(response)}`);\n}\n\nitems[0].json.cloudinaryUrl = response.secure_url;\nitems[0].json.cloudinaryResponse = response;\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        432
+      ],
+      "id": "7795dc92-de91-4f15-8397-4ba0ed092e63",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.twilio.com/2010-04-01/Accounts/YOUR_TWILIO_ACCOUNT_SID/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "From",
+              "value": "whatsapp:+14155238886"
+            },
+            {
+              "name": "To",
+              "value": "=whatsapp:{{ $('Code').item.json.phone }}"
+            },
+            {
+              "name": "Body",
+              "value": "=Hi {{ $('Code').item.json.name }}, your personalised property message is ready. Please listen to the audio below."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        160,
+        80
+      ],
+      "id": "20282abe-6647-44b5-b30e-47752a49d9f3",
+      "name": "Send WhatsApp body",
+      "alwaysOutputData": true,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "V7p3vAAwS4E8roB3",
+          "name": "Unnamed credential"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp body": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "aba93719-904e-4c63-949a-f849d33c3561",
+  "meta": {
+    "instanceId": "YOUR_N8N_INSTANCE_ID"
+  },
+  "id": "zJJoaM2fWCGF2jW3",
+  "tags": []
+}
